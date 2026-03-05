@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>分貝儀 · dBmeter</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-deep: #030810;
+    --bg-mid: #070f1e;
+    --bg-panel: #0b1628;
+    --accent-cyan: #00e5ff;
+    --accent-green: #00ff88;
+    --accent-yellow: #ffdd00;
+    --accent-orange: #ff8c00;
+    --accent-red: #ff1744;
+    --accent-purple: #b347ff;
+    --glow-cyan: rgba(0,229,255,0.4);
+    --glow-green: rgba(0,255,136,0.4);
+    --glow-red: rgba(255,23,68,0.6);
+    --text-bright: #e8f4ff;
+    --text-dim: #4a6080;
+    --border-glow: rgba(0,229,255,0.15);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans TC', sans-serif;
+    background: var(--bg-deep);
+    color: var(--text-bright);
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* Animated grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(ellipse at 60% 20%, rgba(0,229,255,0.05) 0%, transparent 50%),
+                radial-gradient(ellipse at 20% 80%, rgba(179,71,255,0.05) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+    animation: bgPulse 8s ease-in-out infinite alternate;
+  }
+
+  @keyframes bgPulse {
+    0% { opacity: 0.5; }
+    100% { opacity: 1; }
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 20px 16px 40px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    padding: 16px 0 8px;
+  }
+
+  .header-logo {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(26px, 7vw, 36px);
+    font-weight: 900;
+    letter-spacing: 6px;
+    background: linear-gradient(135deg, var(--accent-cyan) 0%, var(--accent-purple) 60%, var(--accent-cyan) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 0 20px rgba(0,229,255,0.5));
+    animation: logoShimmer 4s linear infinite;
+    background-size: 200% 100%;
+  }
+
+  @keyframes logoShimmer {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 200% 50%; }
+  }
+
+  .header-sub {
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: var(--text-dim);
+    margin-top: 4px;
+    text-transform: uppercase;
+  }
+
+  /* Main dB display */
+  .db-display-card {
+    background: linear-gradient(145deg, #0d1f3c, #071428);
+    border: 1px solid var(--border-glow);
+    border-radius: 24px;
+    padding: 28px 20px 24px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 0 60px rgba(0,229,255,0.05), inset 0 1px 0 rgba(255,255,255,0.05);
+  }
+
+  .db-display-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
+    animation: scanline 3s linear infinite;
+  }
+
+  @keyframes scanline {
+    0% { opacity: 0.3; }
+    50% { opacity: 1; }
+    100% { opacity: 0.3; }
+  }
+
+  .db-label-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+
+  .db-label {
+    font-family: 'Orbitron', monospace;
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--text-dim);
+  }
+
+  .live-indicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--accent-green);
+  }
+
+  .live-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent-green);
+    box-shadow: 0 0 8px var(--accent-green);
+    animation: blink 1.2s ease-in-out infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.2; }
+  }
+
+  .live-dot.inactive {
+    background: var(--text-dim);
+    box-shadow: none;
+    animation: none;
+  }
+
+  /* Big dB number */
+  .db-big-num {
+    text-align: center;
+    position: relative;
+  }
+
+  .db-value {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(72px, 22vw, 110px);
+    font-weight: 900;
+    line-height: 1;
+    transition: color 0.15s ease, text-shadow 0.15s ease;
+    color: var(--accent-cyan);
+    text-shadow: 0 0 40px var(--glow-cyan), 0 0 80px rgba(0,229,255,0.2);
+    letter-spacing: -2px;
+  }
+
+  .db-unit {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(16px, 5vw, 24px);
+    color: var(--text-dim);
+    letter-spacing: 4px;
+    margin-top: 4px;
+  }
+
+  /* Level description */
+  .level-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    border: 1px solid;
+    transition: all 0.3s ease;
+  }
+
+  /* VU Meter bar */
+  .vu-section {
+    background: linear-gradient(145deg, #0d1f3c, #071428);
+    border: 1px solid var(--border-glow);
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+  }
+
+  .vu-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--text-dim);
+    margin-bottom: 14px;
+  }
+
+  .vu-bar-wrap {
+    position: relative;
+    height: 36px;
+    background: rgba(0,0,0,0.4);
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+
+  .vu-bar-track {
+    display: flex;
+    height: 100%;
+    gap: 2px;
+    padding: 4px;
+  }
+
+  .vu-segment {
+    flex: 1;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.04);
+    transition: background 0.06s ease, box-shadow 0.06s ease;
+  }
+
+  .vu-bar-fill {
+    position: absolute;
+    top: 0; left: 0; bottom: 0;
+    border-radius: 10px;
+    transition: width 0.08s ease;
+    background: linear-gradient(90deg,
+      var(--accent-green) 0%,
+      var(--accent-green) 55%,
+      var(--accent-yellow) 70%,
+      var(--accent-orange) 82%,
+      var(--accent-red) 100%
+    );
+    box-shadow: 0 0 20px rgba(0,255,136,0.3);
+  }
+
+  /* dB Scale labels */
+  .db-scale {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+    padding: 0 2px;
+  }
+
+  .db-scale span {
+    font-family: 'Orbitron', monospace;
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+  }
+
+  /* Peak indicator */
+  .peak-row {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 12px;
+    padding: 10px 14px;
+    background: rgba(0,0,0,0.3);
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.04);
+  }
+
+  .peak-item {
+    text-align: center;
+  }
+
+  .peak-label {
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    font-family: 'Orbitron', monospace;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .peak-value {
+    font-family: 'Orbitron', monospace;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--accent-yellow);
+    text-shadow: 0 0 12px rgba(255,221,0,0.5);
+  }
+
+  .avg-value {
+    color: var(--accent-purple);
+    text-shadow: 0 0 12px rgba(179,71,255,0.5);
+  }
+
+  .min-value {
+    color: var(--accent-cyan);
+    text-shadow: 0 0 12px var(--glow-cyan);
+  }
+
+  /* Waveform canvas */
+  .waveform-card {
+    background: linear-gradient(145deg, #0d1f3c, #071428);
+    border: 1px solid var(--border-glow);
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+  }
+
+  .waveform-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+  }
+
+  #waveCanvas {
+    width: 100%;
+    height: 80px;
+    border-radius: 10px;
+    background: rgba(0,0,0,0.4);
+    display: block;
+  }
+
+  /* Sound level reference */
+  .reference-card {
+    background: linear-gradient(145deg, #0d1f3c, #071428);
+    border: 1px solid var(--border-glow);
+    border-radius: 20px;
+    padding: 20px;
+  }
+
+  .ref-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--text-dim);
+    margin-bottom: 14px;
+  }
+
+  .ref-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .ref-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    background: rgba(0,0,0,0.25);
+    border: 1px solid rgba(255,255,255,0.03);
+    transition: all 0.3s ease;
+  }
+
+  .ref-item.active-ref {
+    border-color: rgba(0,229,255,0.3);
+    background: rgba(0,229,255,0.05);
+  }
+
+  .ref-db {
+    font-family: 'Orbitron', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    min-width: 48px;
+    color: var(--accent-cyan);
+  }
+
+  .ref-bar-wrap {
+    flex: 1;
+    height: 4px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .ref-bar {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.4s ease;
+  }
+
+  .ref-name {
+    font-size: 12px;
+    color: var(--text-dim);
+    min-width: 80px;
+    text-align: right;
+  }
+
+  /* Controls */
+  .controls {
+    display: flex;
+    gap: 12px;
+    padding-bottom: 4px;
+  }
+
+  .btn-main {
+    flex: 1;
+    padding: 16px;
+    border: none;
+    border-radius: 16px;
+    font-family: 'Orbitron', monospace;
+    font-size: 12px;
+    letter-spacing: 3px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-start {
+    background: linear-gradient(135deg, #003d52, #00647a);
+    color: var(--accent-cyan);
+    border: 1px solid rgba(0,229,255,0.4);
+    box-shadow: 0 0 30px rgba(0,229,255,0.1);
+  }
+
+  .btn-start:hover, .btn-start:active {
+    background: linear-gradient(135deg, #005270, #0090a8);
+    box-shadow: 0 0 40px rgba(0,229,255,0.3);
+    transform: translateY(-1px);
+  }
+
+  .btn-start.active {
+    background: linear-gradient(135deg, #1a0030, #350060);
+    color: var(--accent-purple);
+    border-color: rgba(179,71,255,0.4);
+    box-shadow: 0 0 30px rgba(179,71,255,0.2);
+  }
+
+  .btn-reset {
+    background: rgba(255,255,255,0.04);
+    color: var(--text-dim);
+    border: 1px solid rgba(255,255,255,0.08);
+    width: 56px;
+    flex: none;
+    font-size: 20px;
+  }
+
+  .btn-reset:hover {
+    color: var(--accent-red);
+    border-color: rgba(255,23,68,0.3);
+    background: rgba(255,23,68,0.06);
+  }
+
+  /* Permission denied */
+  .permission-msg {
+    text-align: center;
+    padding: 20px;
+    font-size: 13px;
+    color: var(--accent-orange);
+    line-height: 1.8;
+    display: none;
+  }
+
+  /* Status bar */
+  .status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 16px;
+    background: rgba(0,0,0,0.3);
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.04);
+  }
+
+  .status-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .status-label {
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    font-family: 'Orbitron', monospace;
+  }
+
+  .status-val {
+    font-family: 'Orbitron', monospace;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent-cyan);
+  }
+
+  /* Circular gauge */
+  .gauge-wrap {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 8px 0;
+    position: relative;
+  }
+
+  #gaugeCanvas {
+    max-width: 260px;
+    width: 100%;
+  }
+
+  /* Responsive PC layout */
+  @media (min-width: 768px) {
+    .container {
+      max-width: 900px;
+      padding: 30px 24px 60px;
+    }
+
+    .pc-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .pc-wide {
+      grid-column: 1 / -1;
+    }
+
+    .db-value {
+      font-size: 120px;
+    }
+  }
+
+  /* Noise color states */
+  .state-safe .db-value { color: var(--accent-green); text-shadow: 0 0 40px var(--glow-green), 0 0 80px rgba(0,255,136,0.2); }
+  .state-ok .db-value { color: var(--accent-cyan); text-shadow: 0 0 40px var(--glow-cyan), 0 0 80px rgba(0,229,255,0.2); }
+  .state-moderate .db-value { color: var(--accent-yellow); text-shadow: 0 0 40px rgba(255,221,0,0.5); }
+  .state-loud .db-value { color: var(--accent-orange); text-shadow: 0 0 40px rgba(255,140,0,0.5); }
+  .state-danger .db-value { color: var(--accent-red); text-shadow: 0 0 40px var(--glow-red), 0 0 80px rgba(255,23,68,0.3); animation: dangerPulse 0.5s ease-in-out infinite; }
+
+  @keyframes dangerPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+  }
+
+  .footer {
+    text-align: center;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    padding-top: 8px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-logo">dBmeter</div>
+    <div class="header-sub">聲音分貝測量儀 · Sound Level Meter</div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <button class="btn-main btn-start" id="btnStart" onclick="toggleMic()">▶ 開始測量</button>
+    <button class="btn-main btn-reset" onclick="resetStats()" title="重置">↺</button>
+  </div>
+
+  <div class="permission-msg" id="permMsg">
+    ⚠ 請允許麥克風存取權限<br>
+    <small>前往瀏覽器設定 → 允許麥克風</small>
+  </div>
+
+  <!-- Main dB card + Gauge (PC: side by side) -->
+  <div class="pc-grid">
+    <!-- dB Display -->
+    <div class="db-display-card" id="stateCard">
+      <div class="db-label-row">
+        <span class="db-label">即時分貝值</span>
+        <div class="live-indicator">
+          <div class="live-dot inactive" id="liveDot"></div>
+          <span id="liveText">待機中</span>
+        </div>
+      </div>
+
+      <div class="db-big-num">
+        <div class="db-value" id="dbValue">--</div>
+        <div class="db-unit">dB SPL</div>
+        <div style="text-align:center; margin-top: 10px;">
+          <span class="level-badge" id="levelBadge" style="color:#4a6080; border-color:#4a6080; background: rgba(74,96,128,0.1);">● 等待測量</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Circular Gauge -->
+    <div class="db-display-card" style="display:flex; flex-direction:column; justify-content:center;">
+      <div class="db-label-row">
+        <span class="db-label">量表</span>
+        <span class="db-label" id="gaugePercent">0%</span>
+      </div>
+      <div class="gauge-wrap">
+        <canvas id="gaugeCanvas" width="260" height="160"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats bar -->
+  <div class="status-bar">
+    <div class="status-item">
+      <span class="status-label">最小值</span>
+      <span class="status-val min-value" id="minVal">--</span>
+    </div>
+    <div class="status-item">
+      <span class="status-label">平均值</span>
+      <span class="status-val avg-value" id="avgVal">--</span>
+    </div>
+    <div class="status-item">
+      <span class="status-label">最大值</span>
+      <span class="status-val peak-value" id="maxVal">--</span>
+    </div>
+    <div class="status-item">
+      <span class="status-label">取樣數</span>
+      <span class="status-val" id="sampleCount" style="color:var(--accent-purple)">0</span>
+    </div>
+  </div>
+
+  <!-- VU Meter -->
+  <div class="vu-section">
+    <div class="vu-title">VU 音量單位儀表</div>
+    <div class="vu-bar-wrap">
+      <div class="vu-bar-fill" id="vuFill" style="width:0%"></div>
+      <div class="vu-bar-track" id="vuTrack"></div>
+    </div>
+    <div class="db-scale">
+      <span>0</span><span>20</span><span>40</span><span>60</span><span>80</span><span>100</span><span>120dB</span>
+    </div>
+  </div>
+
+  <!-- Waveform -->
+  <div class="waveform-card">
+    <div class="waveform-title">波形顯示 · WAVEFORM</div>
+    <canvas id="waveCanvas" width="400" height="80"></canvas>
+  </div>
+
+  <!-- Sound Reference -->
+  <div class="reference-card">
+    <div class="ref-title">聲音等級參考表 · SOUND LEVEL REFERENCE</div>
+    <div class="ref-list" id="refList">
+      <div class="ref-item" data-db="20">
+        <span class="ref-db">20</span>
+        <div class="ref-bar-wrap"><div class="ref-bar" style="width:17%; background: var(--accent-cyan);"></div></div>
+        <span class="ref-name">樹葉沙沙聲</span>
+      </div>
+      <div class="ref-item" data-db="40">
+        <span class="ref-db">40</span>
+        <div class="ref-bar-wrap"><div class="ref-bar" style="width:33%; background: var(--accent-green);"></div></div>
+        <span class="ref-name">圖書館</span>
+      </div>
+      <div class="ref-item" data-db="60">
+        <span class="ref-db">60</span>
+        <div class="ref-bar-wrap"><div class="ref-bar" style="width:50%; background: var(--accent-yellow);"></div></div>
+        <span class="ref-name">正常談話</span>
+      </div>
+      <div class="ref-item" data-db="80">
+        <span class="ref-db">80</span>
+        <div class="ref-bar-wrap"><div class="ref-bar" style="width:67%; background: var(--accent-orange);"></div></div>
+        <span class="ref-name">鬧市街道</span>
+      </div>
+      <div class="ref-item" data-db="100">
+        <span class="ref-db">100</span>
+        <div class="ref-bar-wrap"><div class="ref-bar" style="width:83%; background: #ff4400;"></div></div>
+        <span class="ref-name">演唱會</span>
+      </div>
+      <div class="ref-item" data-db="120">
+        <span class="ref-db">120</span>
+        <div class="ref-bar-wrap"><div class="ref-bar" style="width:100%; background: var(--accent-red);"></div></div>
+        <span class="ref-name">⚠ 聽力受損</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">© dBmeter · 聲音分貝測量儀 · 請在安靜環境校準</div>
+</div>
+
+<script>
+// State
+let audioCtx = null, analyser = null, stream = null, animFrame = null;
+let isRunning = false;
+let dbHistory = [];
+let waveHistory = new Float32Array(100).fill(0);
+
+// VU segments
+const vuTrack = document.getElementById('vuTrack');
+for (let i = 0; i < 40; i++) {
+  const seg = document.createElement('div');
+  seg.className = 'vu-segment';
+  vuTrack.appendChild(seg);
+}
+
+// Gauge canvas
+const gCanvas = document.getElementById('gaugeCanvas');
+const gCtx = gCanvas.getContext('2d');
+
+function drawGauge(db) {
+  const W = gCanvas.width, H = gCanvas.height;
+  gCtx.clearRect(0, 0, W, H);
+
+  const cx = W / 2, cy = H - 20;
+  const r = Math.min(W, H * 1.8) * 0.44;
+  const startAngle = Math.PI, endAngle = 0;
+
+  // Background arc segments
+  const segments = [
+    { from: 0, to: 0.45, color: '#00ff88' },
+    { from: 0.45, to: 0.65, color: '#00e5ff' },
+    { from: 0.65, to: 0.78, color: '#ffdd00' },
+    { from: 0.78, to: 0.90, color: '#ff8c00' },
+    { from: 0.90, to: 1.0, color: '#ff1744' },
+  ];
+
+  segments.forEach(seg => {
+    const sa = Math.PI + seg.from * Math.PI;
+    const ea = Math.PI + seg.to * Math.PI;
+    gCtx.beginPath();
+    gCtx.arc(cx, cy, r, sa, ea);
+    gCtx.lineWidth = 18;
+    gCtx.strokeStyle = seg.color + '30';
+    gCtx.stroke();
+  });
+
+  // Active arc
+  const pct = Math.max(0, Math.min(1, (db - 0) / 120));
+  if (pct > 0) {
+    const activeGrad = gCtx.createLinearGradient(cx - r, cy, cx + r, cy);
+    activeGrad.addColorStop(0, '#00ff88');
+    activeGrad.addColorStop(0.55, '#00e5ff');
+    activeGrad.addColorStop(0.72, '#ffdd00');
+    activeGrad.addColorStop(0.88, '#ff8c00');
+    activeGrad.addColorStop(1, '#ff1744');
+
+    gCtx.beginPath();
+    gCtx.arc(cx, cy, r, Math.PI, Math.PI + pct * Math.PI);
+    gCtx.lineWidth = 18;
+    gCtx.strokeStyle = activeGrad;
+    gCtx.lineCap = 'round';
+    gCtx.shadowColor = '#00e5ff';
+    gCtx.shadowBlur = 12;
+    gCtx.stroke();
+    gCtx.shadowBlur = 0;
+  }
+
+  // Tick marks
+  for (let i = 0; i <= 12; i++) {
+    const ang = Math.PI + (i / 12) * Math.PI;
+    const inner = r - 14, outer = r + 4;
+    const x1 = cx + inner * Math.cos(ang), y1 = cy + inner * Math.sin(ang);
+    const x2 = cx + outer * Math.cos(ang), y2 = cy + outer * Math.sin(ang);
+    gCtx.beginPath();
+    gCtx.moveTo(x1, y1); gCtx.lineTo(x2, y2);
+    gCtx.strokeStyle = i % 3 === 0 ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.1)';
+    gCtx.lineWidth = i % 3 === 0 ? 2 : 1;
+    gCtx.stroke();
+  }
+
+  // Needle
+  const needleAngle = Math.PI + pct * Math.PI;
+  const nx = cx + (r - 20) * Math.cos(needleAngle);
+  const ny = cy + (r - 20) * Math.sin(needleAngle);
+  gCtx.beginPath();
+  gCtx.moveTo(cx, cy);
+  gCtx.lineTo(nx, ny);
+  gCtx.strokeStyle = '#ffffff';
+  gCtx.lineWidth = 2.5;
+  gCtx.shadowColor = '#fff';
+  gCtx.shadowBlur = 6;
+  gCtx.stroke();
+  gCtx.shadowBlur = 0;
+
+  // Center dot
+  gCtx.beginPath();
+  gCtx.arc(cx, cy, 7, 0, Math.PI * 2);
+  gCtx.fillStyle = '#ffffff';
+  gCtx.fill();
+  gCtx.beginPath();
+  gCtx.arc(cx, cy, 4, 0, Math.PI * 2);
+  gCtx.fillStyle = '#0b1628';
+  gCtx.fill();
+
+  // dB labels
+  [0, 40, 80, 120].forEach((val, i) => {
+    const ang = Math.PI + (val / 120) * Math.PI;
+    const tx = cx + (r + 20) * Math.cos(ang);
+    const ty = cy + (r + 20) * Math.sin(ang);
+    gCtx.fillStyle = 'rgba(255,255,255,0.35)';
+    gCtx.font = 'bold 10px Orbitron, monospace';
+    gCtx.textAlign = 'center';
+    gCtx.textBaseline = 'middle';
+    gCtx.fillText(val, tx, ty);
+  });
+
+  document.getElementById('gaugePercent').textContent = Math.round(pct * 100) + '%';
+}
+
+// Waveform canvas
+const wCanvas = document.getElementById('waveCanvas');
+const wCtx = wCanvas.getContext('2d');
+
+function drawWave(db) {
+  // Shift history
+  waveHistory = new Float32Array([...waveHistory.slice(1), db]);
+
+  const W = wCanvas.offsetWidth * window.devicePixelRatio || 400;
+  const H = 80;
+  wCanvas.width = W; wCanvas.height = H;
+
+  wCtx.clearRect(0, 0, W, H);
+  wCtx.fillStyle = 'rgba(0,0,0,0)';
+  wCtx.fillRect(0, 0, W, H);
+
+  // Gradient fill under line
+  const grad = wCtx.createLinearGradient(0, 0, W, 0);
+  grad.addColorStop(0, 'rgba(0,229,255,0.05)');
+  grad.addColorStop(1, 'rgba(0,229,255,0.15)');
+
+  const lineGrad = wCtx.createLinearGradient(0, 0, W, 0);
+  lineGrad.addColorStop(0, 'rgba(0,229,255,0.3)');
+  lineGrad.addColorStop(0.7, '#00e5ff');
+  lineGrad.addColorStop(1, '#00ff88');
+
+  const len = waveHistory.length;
+  const stepX = W / (len - 1);
+
+  wCtx.beginPath();
+  for (let i = 0; i < len; i++) {
+    const x = i * stepX;
+    const y = H - (waveHistory[i] / 120) * (H - 10) - 5;
+    i === 0 ? wCtx.moveTo(x, y) : wCtx.lineTo(x, y);
+  }
+  // Fill
+  wCtx.lineTo(W, H); wCtx.lineTo(0, H); wCtx.closePath();
+  wCtx.fillStyle = grad; wCtx.fill();
+
+  // Line
+  wCtx.beginPath();
+  for (let i = 0; i < len; i++) {
+    const x = i * stepX;
+    const y = H - (waveHistory[i] / 120) * (H - 10) - 5;
+    i === 0 ? wCtx.moveTo(x, y) : wCtx.lineTo(x, y);
+  }
+  wCtx.strokeStyle = lineGrad;
+  wCtx.lineWidth = 2;
+  wCtx.shadowColor = '#00e5ff';
+  wCtx.shadowBlur = 8;
+  wCtx.stroke();
+  wCtx.shadowBlur = 0;
+}
+
+// Get level info
+function getLevelInfo(db) {
+  if (db < 30) return { label: '🍃 極安靜', cls: 'state-safe', color: 'var(--accent-green)', bgColor: 'rgba(0,255,136,0.08)', border: 'rgba(0,255,136,0.4)' };
+  if (db < 50) return { label: '🔇 安靜', cls: 'state-safe', color: 'var(--accent-green)', bgColor: 'rgba(0,255,136,0.08)', border: 'rgba(0,255,136,0.4)' };
+  if (db < 65) return { label: '💬 正常', cls: 'state-ok', color: 'var(--accent-cyan)', bgColor: 'rgba(0,229,255,0.08)', border: 'rgba(0,229,255,0.4)' };
+  if (db < 75) return { label: '🔊 偏響', cls: 'state-moderate', color: 'var(--accent-yellow)', bgColor: 'rgba(255,221,0,0.08)', border: 'rgba(255,221,0,0.4)' };
+  if (db < 90) return { label: '⚡ 吵鬧', cls: 'state-loud', color: 'var(--accent-orange)', bgColor: 'rgba(255,140,0,0.08)', border: 'rgba(255,140,0,0.4)' };
+  return { label: '⚠ 危險！', cls: 'state-danger', color: 'var(--accent-red)', bgColor: 'rgba(255,23,68,0.1)', border: 'rgba(255,23,68,0.5)' };
+}
+
+function updateUI(db) {
+  const dbEl = document.getElementById('dbValue');
+  const card = document.getElementById('stateCard');
+  const badge = document.getElementById('levelBadge');
+
+  dbEl.textContent = db.toFixed(1);
+
+  const info = getLevelInfo(db);
+  card.className = 'db-display-card ' + info.cls;
+  badge.textContent = info.label;
+  badge.style.color = info.color;
+  badge.style.borderColor = info.border;
+  badge.style.background = info.bgColor;
+
+  // VU bar
+  const pct = Math.min(100, (db / 120) * 100);
+  document.getElementById('vuFill').style.width = pct + '%';
+  // Update VU glow color based on level
+  const fill = document.getElementById('vuFill');
+  if (db < 65) fill.style.boxShadow = '0 0 20px rgba(0,255,136,0.4)';
+  else if (db < 80) fill.style.boxShadow = '0 0 20px rgba(255,221,0,0.4)';
+  else fill.style.boxShadow = '0 0 20px rgba(255,23,68,0.5)';
+
+  // Stats
+  dbHistory.push(db);
+  if (dbHistory.length > 500) dbHistory.shift();
+  const minDb = Math.min(...dbHistory);
+  const maxDb = Math.max(...dbHistory);
+  const avgDb = dbHistory.reduce((a, b) => a + b, 0) / dbHistory.length;
+
+  document.getElementById('minVal').textContent = minDb.toFixed(1);
+  document.getElementById('maxVal').textContent = maxDb.toFixed(1);
+  document.getElementById('avgVal').textContent = avgDb.toFixed(1);
+  document.getElementById('sampleCount').textContent = dbHistory.length;
+
+  // Reference highlight
+  const refItems = document.querySelectorAll('.ref-item');
+  refItems.forEach(item => {
+    item.classList.remove('active-ref');
+    const refDb = parseInt(item.dataset.db);
+    if (db >= refDb - 10 && db < refDb + 10) item.classList.add('active-ref');
+  });
+
+  // Gauge
+  drawGauge(db);
+
+  // Waveform
+  drawWave(db);
+}
+
+async function toggleMic() {
+  if (isRunning) {
+    stopMic();
+  } else {
+    await startMic();
+  }
+}
+
+async function startMic() {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 2048;
+    analyser.smoothingTimeConstant = 0.4;
+
+    const source = audioCtx.createMediaStreamSource(stream);
+    source.connect(analyser);
+
+    isRunning = true;
+    document.getElementById('btnStart').textContent = '⏹ 停止測量';
+    document.getElementById('btnStart').classList.add('active');
+    document.getElementById('liveDot').classList.remove('inactive');
+    document.getElementById('liveText').textContent = '測量中';
+    document.getElementById('permMsg').style.display = 'none';
+
+    loop();
+  } catch (e) {
+    document.getElementById('permMsg').style.display = 'block';
+    console.error(e);
+  }
+}
+
+function stopMic() {
+  isRunning = false;
+  if (animFrame) cancelAnimationFrame(animFrame);
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  if (audioCtx) audioCtx.close();
+
+  document.getElementById('btnStart').textContent = '▶ 開始測量';
+  document.getElementById('btnStart').classList.remove('active');
+  document.getElementById('liveDot').classList.add('inactive');
+  document.getElementById('liveText').textContent = '待機中';
+}
+
+function resetStats() {
+  dbHistory = [];
+  waveHistory = new Float32Array(100).fill(0);
+  document.getElementById('minVal').textContent = '--';
+  document.getElementById('maxVal').textContent = '--';
+  document.getElementById('avgVal').textContent = '--';
+  document.getElementById('sampleCount').textContent = '0';
+  document.getElementById('dbValue').textContent = '--';
+  document.getElementById('vuFill').style.width = '0%';
+  drawGauge(0);
+  drawWave(0);
+  document.getElementById('levelBadge').textContent = '● 等待測量';
+  document.getElementById('levelBadge').style.color = '#4a6080';
+  document.getElementById('levelBadge').style.borderColor = '#4a6080';
+  document.getElementById('levelBadge').style.background = 'rgba(74,96,128,0.1)';
+  document.getElementById('stateCard').className = 'db-display-card';
+}
+
+let frameCount = 0;
+function loop() {
+  if (!isRunning) return;
+  animFrame = requestAnimationFrame(loop);
+  frameCount++;
+  if (frameCount % 3 !== 0) return; // throttle to ~20fps
+
+  const bufLen = analyser.frequencyBinCount;
+  const dataArr = new Float32Array(bufLen);
+  analyser.getFloatTimeDomainData(dataArr);
+
+  // RMS calculation
+  let sum = 0;
+  for (let i = 0; i < bufLen; i++) sum += dataArr[i] * dataArr[i];
+  const rms = Math.sqrt(sum / bufLen);
+  const db = rms > 0 ? Math.max(0, Math.min(130, 20 * Math.log10(rms) + 90)) : 0;
+
+  updateUI(db);
+}
+
+// Init gauge
+drawGauge(0);
+drawWave(0);
+
+// Handle resize
+window.addEventListener('resize', () => {
+  if (!isRunning) { drawGauge(0); drawWave(0); }
+});
+</script>
+</body>
+</html>
