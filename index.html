@@ -290,41 +290,46 @@ body {
 /* Cards grid */
 .cards-grid {
   display: flex;
-  flex-direction: column;
-  gap: 7px;
+  flex-direction: row;
+  gap: 0;
   margin-bottom: 14px;
-}
-
-/* Stat card */
-.stat-card {
   background: var(--glass-bg);
   backdrop-filter: blur(30px) saturate(1.6);
   -webkit-backdrop-filter: blur(30px) saturate(1.6);
   border: 1px solid var(--glass-border);
-  border-radius: 14px;
+  border-radius: 16px;
   box-shadow: var(--glass-shadow);
-  padding: 11px 14px;
+  overflow: hidden;
+}
+
+/* Stat card */
+.stat-card {
+  flex: 1;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: none;
+  border-right: 1px solid var(--ios-sep);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 12px 10px;
   position: relative;
   overflow: hidden;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 3px;
   transition: transform 0.2s ease;
 }
 
-.stat-card::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  border-radius: 14px;
-  background: linear-gradient(145deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 55%);
-  pointer-events: none;
-}
+.stat-card:last-child { border-right: none; }
+
+.stat-card::before { display: none; }
 
 .stat-icon { display: none; }
 
 .stat-label {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 500;
   color: var(--ios-label4);
   letter-spacing: 0.1px;
@@ -335,18 +340,17 @@ body {
   font-size: 20px;
   font-weight: 500;
   letter-spacing: -0.5px;
-  color: var(--ios-label);
   font-variant-numeric: tabular-nums;
   line-height: 1;
-  margin-left: auto;
+  margin-left: 0;
 }
 
 .stat-unit {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 500;
   color: var(--ios-label4);
   letter-spacing: 0.3px;
-  margin-left: 2px;
+  margin-left: 0;
 }
 
 /* Gauge arc card */
