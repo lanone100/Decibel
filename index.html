@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>分貝儀</title>
+<title>聲音分貝測量儀</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap');
 
@@ -617,10 +617,8 @@ body {
   <div class="status-spacer"></div>
 
   <!-- Nav -->
-  <div class="nav-bar">
-    <div class="nav-btn" style="font-size:18px;">🎙</div>
-    <div class="nav-title">分貝儀</div>
-    <div class="nav-btn" onclick="resetStats()" title="重置">↺</div>
+  <div class="nav-bar" style="justify-content:center;">
+    <div class="nav-title" style="font-size:19px; font-weight:700; letter-spacing:-0.5px;">聲音分貝測量儀</div>
   </div>
 
   <!-- Permission banner -->
@@ -663,6 +661,14 @@ body {
         </div>
       </div>
 
+      <!-- CTA -->
+      <div class="cta-wrap">
+        <div class="btn-row">
+          <button class="btn-cta" id="btnStart" onclick="toggleMic()">🎙 開始測量</button>
+          <button class="btn-secondary" onclick="resetStats()">↺</button>
+        </div>
+      </div>
+
       <!-- Stats grid -->
       <div class="cards-grid">
         <div class="stat-card">
@@ -691,13 +697,6 @@ body {
         </div>
       </div>
 
-      <!-- CTA -->
-      <div class="cta-wrap">
-        <div class="btn-row">
-          <button class="btn-cta" id="btnStart" onclick="toggleMic()">🎙 開始測量</button>
-          <button class="btn-secondary" onclick="resetStats()">↺</button>
-        </div>
-      </div>
 
     </div><!-- /pc-col left -->
 
