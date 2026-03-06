@@ -718,8 +718,8 @@ body {
         <div class="danger-alert" id="dangerAlert">
           <div class="danger-icon">⚠️</div>
           <div>
-            <div class="danger-text">危險噪音警告！</div>
-            <div class="danger-sub">長時間暴露將損害聽力，請立即遠離</div>
+            <div class="danger-text">噪音警示！環境過於吵鬧</div>
+            <div class="danger-sub">建議保護耳朵或遠離噪音來源</div>
           </div>
         </div>
       </div>
@@ -1081,7 +1081,7 @@ function updateUI(db) {
   });
 
   // Danger alert
-  const danger = db >= 90;
+  const danger = db >= 75;
   const heroCard = document.getElementById('heroCard');
   const dangerAlert = document.getElementById('dangerAlert');
   dangerAlert.classList.toggle('visible', danger);
