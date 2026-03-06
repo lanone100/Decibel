@@ -606,6 +606,52 @@ body {
 .theme-orange .db-number { color: var(--orange); }
 .theme-red .db-number { color: var(--red); }
 
+/* Danger alert overlay */
+.danger-alert {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0 0;
+  padding: 11px 16px;
+  border-radius: 14px;
+  background: rgba(255,59,48,0.1);
+  border: 1px solid rgba(255,59,48,0.35);
+  animation: dangerFlash 0.7s ease-in-out infinite alternate;
+}
+.danger-alert.visible { display: flex; }
+
+@keyframes dangerFlash {
+  0%  { background: rgba(255,59,48,0.07); border-color: rgba(255,59,48,0.25); }
+  100%{ background: rgba(255,59,48,0.18); border-color: rgba(255,59,48,0.6); }
+}
+
+.danger-icon { font-size: 20px; flex-shrink: 0; }
+.danger-text { font-size: 13px; font-weight: 600; color: var(--red); letter-spacing: -0.2px; line-height: 1.4; }
+.danger-sub  { font-size: 11px; font-weight: 400; color: rgba(255,59,48,0.75); }
+
+/* Hero card danger state */
+.hero-card.danger-state {
+  border-color: rgba(255,59,48,0.4);
+  box-shadow: var(--glass-shadow), 0 0 0 3px rgba(255,59,48,0.12);
+  animation: cardDangerPulse 0.7s ease-in-out infinite alternate;
+}
+@keyframes cardDangerPulse {
+  0%  { box-shadow: var(--glass-shadow), 0 0 0 2px rgba(255,59,48,0.08); }
+  100%{ box-shadow: var(--glass-shadow), 0 0 0 4px rgba(255,59,48,0.22), 0 8px 40px rgba(255,59,48,0.15); }
+}
+
+/* Inline gauge inside hero */
+.hero-gauge-wrap {
+  display: flex;
+  justify-content: center;
+  margin: 4px 0 6px;
+}
+#heroGaugeCanvas {
+  width: 100%;
+  max-width: 280px;
+  display: block;
+}
+
 </style>
 </head>
 <body>
@@ -631,7 +677,7 @@ body {
   <div class="pc-grid-main">
     <div class="pc-col">
 
-      <!-- Hero card -->
+      <!-- Hero card (merged with gauge) -->
       <div class="hero-card" id="heroCard">
         <div class="card-blob" id="cardBlob" style="background: var(--blue);"></div>
         <div class="hero-top">
@@ -645,13 +691,18 @@ body {
           </div>
         </div>
 
-        <div class="db-number-wrap">
+        <!-- Gauge arc (now inside hero) -->
+        <div class="hero-gauge-wrap">
+          <canvas id="heroGaugeCanvas" width="280" height="162"></canvas>
+        </div>
+
+        <div class="db-number-wrap" style="padding: 0 0 10px;">
           <div class="db-number" id="dbNumber">
             <span id="dbInt">--</span><span class="decimal" id="dbDec"></span><span class="unit-inline">dB</span>
           </div>
         </div>
 
-        <div style="text-align:center; margin-bottom: 18px;">
+        <div style="text-align:center; margin-bottom: 14px;">
           <span class="level-chip" id="levelChip">● 等待測量</span>
         </div>
 
@@ -660,6 +711,15 @@ body {
           <div class="seg-gauge" id="segGauge"></div>
           <div class="seg-scale">
             <span>0</span><span>30</span><span>60</span><span>90</span><span>120 dB</span>
+          </div>
+        </div>
+
+        <!-- Danger alert (inside card, shown when ≥90 dB) -->
+        <div class="danger-alert" id="dangerAlert">
+          <div class="danger-icon">⚠️</div>
+          <div>
+            <div class="danger-text">危險噪音警告！</div>
+            <div class="danger-sub">長時間暴露將損害聽力，請立即遠離</div>
           </div>
         </div>
       </div>
@@ -704,17 +764,6 @@ body {
     </div><!-- /pc-col left -->
 
     <div class="pc-col">
-
-      <!-- Arc gauge -->
-      <div class="arc-card">
-        <div class="card-header">
-          <div class="card-title">量表</div>
-          <div class="card-tag" id="gaugePct">0%</div>
-        </div>
-        <div class="arc-wrap">
-          <canvas id="gaugeCanvas" width="300" height="175"></canvas>
-        </div>
-      </div>
 
       <!-- Waveform -->
       <div class="wave-card">
@@ -803,7 +852,7 @@ for (let i = 0; i < SEG_COUNT; i++) {
 }
 
 // ── Gauge canvas ──
-const gCvs = document.getElementById('gaugeCanvas');
+const gCvs = document.getElementById('heroGaugeCanvas');
 const gCtx = gCvs.getContext('2d');
 
 function drawGauge(db) {
@@ -811,7 +860,6 @@ function drawGauge(db) {
   gCtx.clearRect(0, 0, W, H);
   const cx = W / 2, cy = H - 14;
   const rOut = Math.min(W * 0.44, H * 0.84);
-  const rIn = rOut - 22;
 
   // Track background
   gCtx.beginPath();
@@ -904,8 +952,6 @@ function drawGauge(db) {
     gCtx.textBaseline = 'middle';
     gCtx.fillText(val, tx, ty);
   });
-
-  document.getElementById('gaugePct').textContent = Math.round(pct * 100) + '%';
 }
 
 // ── Waveform ──
@@ -1034,6 +1080,13 @@ function updateUI(db) {
     row.classList.toggle('active-ref', db >= from && db < to);
   });
 
+  // Danger alert
+  const danger = db >= 90;
+  const heroCard = document.getElementById('heroCard');
+  const dangerAlert = document.getElementById('dangerAlert');
+  dangerAlert.classList.toggle('visible', danger);
+  heroCard.classList.toggle('danger-state', danger);
+
   drawGauge(db);
   drawWave(db);
 }
@@ -1119,6 +1172,8 @@ function resetStats() {
   document.getElementById('levelDesc').textContent = '等待測量';
   document.getElementById('levelChip').textContent = '● 等待測量';
   document.getElementById('levelChip').style.cssText = '';
+  document.getElementById('dangerAlert').classList.remove('visible');
+  document.getElementById('heroCard').classList.remove('danger-state');
   Array.from(segEl.children).forEach(s => { s.style.background = 'rgba(0,0,0,0.07)'; s.style.boxShadow = 'none'; });
   drawGauge(0); drawWave(0);
 }
