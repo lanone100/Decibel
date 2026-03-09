@@ -8,7 +8,7 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap');
 
 :root {
-  /* Apple-inspired palette */
+  /* Apple-inspired palette — Light */
   --ios-bg: #f2f2f7;
   --ios-bg2: #ffffff;
   --ios-grouped: #f2f2f7;
@@ -29,15 +29,64 @@
   --teal: #5ac8fa;
   --mint: #00c7be;
 
-  /* Glass */
+  /* Glass — Light */
   --glass-bg: rgba(255,255,255,0.72);
   --glass-border: rgba(255,255,255,0.85);
   --glass-shadow: 0 8px 32px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04);
 
+  /* Gauge tick / needle colors */
+  --gauge-tick: rgba(0,0,0,0.35);
+  --gauge-needle: rgba(0,0,0,0.5);
+  --gauge-knob: white;
+  --gauge-knob-inner: #f2f2f7;
+  --gauge-track: rgba(0,0,0,0.06);
+  --seg-empty: rgba(0,0,0,0.07);
+
   --radius-card: 22px;
   --radius-inner: 14px;
-
   font-size: 16px;
+}
+
+/* ── Dark mode ── */
+body.dark {
+  --ios-bg: #000000;
+  --ios-bg2: #1c1c1e;
+  --ios-grouped: #000000;
+  --ios-label: #ffffff;
+  --ios-label2: #ebebf5;
+  --ios-label3: #ebebf599;
+  --ios-label4: #ebebf54d;
+  --ios-sep: rgba(84,84,88,0.65);
+
+  --blue: #0a84ff;
+  --green: #30d158;
+  --yellow: #ffd60a;
+  --orange: #ff9f0a;
+  --red: #ff453a;
+  --purple: #bf5af2;
+  --mint: #63e6e2;
+
+  --glass-bg: rgba(28,28,30,0.82);
+  --glass-border: rgba(255,255,255,0.1);
+  --glass-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.3);
+
+  --gauge-tick: rgba(255,255,255,0.35);
+  --gauge-needle: rgba(255,255,255,0.7);
+  --gauge-knob: #3a3a3c;
+  --gauge-knob-inner: #1c1c1e;
+  --gauge-track: rgba(255,255,255,0.08);
+  --seg-empty: rgba(255,255,255,0.1);
+}
+
+body.dark .theme-yellow .db-number { color: #ffd60a; }
+body.dark .hero-card::before { background: linear-gradient(145deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0) 60%); }
+body.dark .stat-card::before { display: none; }
+body.dark .arc-card::before, body.dark .wave-card::before, body.dark .ref-card { background: transparent; }
+body.dark .wave-card::before { background: transparent; }
+
+/* Smooth theme transition */
+body, .hero-card, .stat-card, .arc-card, .wave-card, .ref-card, .nav-btn, .btn-secondary, .level-chip, .live-pill, .perm-banner {
+  transition: background 0.35s ease, border-color 0.35s ease, color 0.35s ease, box-shadow 0.35s ease;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -270,7 +319,7 @@ body {
 .seg-unit {
   flex: 1;
   border-radius: 3px;
-  background: rgba(0,0,0,0.07);
+  background: var(--seg-empty);
   transition: background 0.08s ease, transform 0.08s ease;
 }
 
@@ -666,8 +715,10 @@ body {
   <div class="status-spacer"></div>
 
   <!-- Nav -->
-  <div class="nav-bar" style="justify-content:center;">
+  <div class="nav-bar" style="justify-content:space-between; padding-left:4px; padding-right:4px;">
+    <div style="width:36px;"></div>
     <div class="nav-title" style="font-size:19px; font-weight:700; letter-spacing:-0.5px;">聲音分貝測量儀</div>
+    <button class="nav-btn" id="themeToggle" onclick="toggleTheme()" title="切換模式" style="font-size:17px; border:none; cursor:pointer;">🌙</button>
   </div>
 
   <!-- Permission banner -->
@@ -865,7 +916,8 @@ function drawGauge(db) {
   gCtx.beginPath();
   gCtx.arc(cx, cy, rOut - 11, Math.PI, 0);
   gCtx.lineWidth = 22;
-  gCtx.strokeStyle = 'rgba(0,0,0,0.06)';
+  const isDark = document.body.classList.contains('dark');
+  gCtx.strokeStyle = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
   gCtx.lineCap = 'round';
   gCtx.stroke();
 
@@ -924,19 +976,19 @@ function drawGauge(db) {
   gCtx.moveTo(cx, cy);
   gCtx.lineTo(cx + nLen * Math.cos(ang), cy + nLen * Math.sin(ang));
   gCtx.lineWidth = 2;
-  gCtx.strokeStyle = 'rgba(0,0,0,0.5)';
+  gCtx.strokeStyle = isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.5)';
   gCtx.lineCap = 'round';
   gCtx.stroke();
 
   // Center knob
   gCtx.beginPath();
   gCtx.arc(cx, cy, 8, 0, Math.PI * 2);
-  gCtx.fillStyle = 'rgba(0,0,0,0.15)';
+  gCtx.fillStyle = isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)';
   gCtx.fill();
   gCtx.beginPath();
   gCtx.arc(cx, cy, 6, 0, Math.PI * 2);
-  gCtx.fillStyle = 'white';
-  gCtx.shadowColor = 'rgba(0,0,0,0.2)';
+  gCtx.fillStyle = isDark ? '#3a3a3c' : 'white';
+  gCtx.shadowColor = isDark ? 'rgba(0,0,0,0.6)' : 'rgba(0,0,0,0.2)';
   gCtx.shadowBlur = 4;
   gCtx.fill();
   gCtx.shadowBlur = 0;
@@ -947,7 +999,7 @@ function drawGauge(db) {
     const tr = rOut + 14;
     const tx = cx + tr * Math.cos(a), ty = cy + tr * Math.sin(a);
     gCtx.font = '500 10px DM Sans, -apple-system, sans-serif';
-    gCtx.fillStyle = 'rgba(0,0,0,0.35)';
+    gCtx.fillStyle = isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.35)';
     gCtx.textAlign = 'center';
     gCtx.textBaseline = 'middle';
     gCtx.fillText(val, tx, ty);
@@ -972,8 +1024,9 @@ function drawWave(db) {
   const sx = W / (len - 1);
 
   // Fill area
+  const isDarkW = document.body.classList.contains('dark');
   const fillGrad = wCtx.createLinearGradient(0, 0, 0, H);
-  fillGrad.addColorStop(0, 'rgba(0,122,255,0.12)');
+  fillGrad.addColorStop(0, isDarkW ? 'rgba(10,132,255,0.18)' : 'rgba(0,122,255,0.12)');
   fillGrad.addColorStop(1, 'rgba(0,122,255,0)');
 
   wCtx.beginPath();
@@ -1058,7 +1111,7 @@ function updateUI(db) {
       segs[i].style.background = c;
       segs[i].style.boxShadow = i === active - 1 ? `0 0 6px ${c}` : 'none';
     } else {
-      segs[i].style.background = 'rgba(0,0,0,0.07)';
+      segs[i].style.background = document.body.classList.contains('dark') ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.07)';
       segs[i].style.boxShadow = 'none';
     }
   }
@@ -1174,13 +1227,46 @@ function resetStats() {
   document.getElementById('levelChip').style.cssText = '';
   document.getElementById('dangerAlert').classList.remove('visible');
   document.getElementById('heroCard').classList.remove('danger-state');
-  Array.from(segEl.children).forEach(s => { s.style.background = 'rgba(0,0,0,0.07)'; s.style.boxShadow = 'none'; });
+  Array.from(segEl.children).forEach(s => { s.style.background = document.body.classList.contains('dark') ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.07)'; s.style.boxShadow = 'none'; });
   drawGauge(0); drawWave(0);
 }
 
 // Init
 drawGauge(0); drawWave(0);
 window.addEventListener('resize', () => { if (!isRunning) { drawGauge(0); drawWave(0); } });
+
+// ── Dark / Light mode toggle ──
+function toggleTheme() {
+  const isDark = document.body.classList.toggle('dark');
+  const btn = document.getElementById('themeToggle');
+  btn.textContent = isDark ? '☀️' : '🌙';
+  btn.title = isDark ? '切換淺色模式' : '切換深色模式';
+  // Redraw canvas with new colours
+  drawGauge(0); drawWave(0);
+  // Persist preference
+  localStorage.setItem('dbmeter-theme', isDark ? 'dark' : 'light');
+}
+
+// ── Auto-detect system preference on load ──
+(function initTheme() {
+  const saved = localStorage.getItem('dbmeter-theme');
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const useDark = saved ? saved === 'dark' : prefersDark;
+  if (useDark) {
+    document.body.classList.add('dark');
+    document.getElementById('themeToggle').textContent = '☀️';
+    document.getElementById('themeToggle').title = '切換淺色模式';
+  }
+})();
+
+// Listen for OS theme changes
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+  if (!localStorage.getItem('dbmeter-theme')) {
+    document.body.classList.toggle('dark', e.matches);
+    document.getElementById('themeToggle').textContent = e.matches ? '☀️' : '🌙';
+    drawGauge(0); drawWave(0);
+  }
+});
 </script>
 </body>
 </html>
